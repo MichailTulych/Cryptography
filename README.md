@@ -16,7 +16,7 @@
 
 cd Laba1Caesar_Cipher
 # Запуск
-python main.py
+python Caesar's Cipher.py
 
 #Тест
 
