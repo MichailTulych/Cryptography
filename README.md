@@ -20,4 +20,5 @@ python main.py
 
 #Тест
 Введите строку: halloworld
+
 Введите сдвиг: 3
