@@ -12,7 +12,7 @@
 Ввод осуществляется только на английском языке.
 # Установка
 Клонируйте репозиторий:
-   git clone https://github.com/MichailTulych/1-laba-cipher.git
+   https://github.com/MichailTulych/Laba1Caesar_Cipher.git
 
 cd 1-laba-cipher
 # Запуск
