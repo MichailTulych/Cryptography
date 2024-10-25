@@ -14,7 +14,7 @@
 Клонируйте репозиторий:
    https://github.com/MichailTulych/Laba1Caesar_Cipher.git
 
-cd 1-laba-cipher
+cd Laba1Caesar_Cipher
 # Запуск
 python main.py
 
