@@ -19,6 +19,7 @@ cd Laba1Caesar_Cipher
 python main.py
 
 #Тест
+
 Введите строку: halloworld
 
 Введите сдвиг: 3
