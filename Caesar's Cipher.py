@@ -3,46 +3,44 @@ from tkinter import messagebox
 
 # Сам Алгоритм
 # Функция шифрования
+
+
 def string_conversion(str, step):
     new_str = ''
-    for i in range(len(str)):
-        k = 0
-        while (str[i] != alfavit[k]):
-            k += 1
-        new_str += alfavit[(k + step) % len(alfavit)]
+    for char in str:
+        if char in alfavit:
+            k = alfavit.index(char)
+            new_str += alfavit[(k + step) % len(alfavit)]
+        else:
+            new_str += char
     return new_str
 
-
 # Функция для обработки нажатия кнопки "Шифровать"
+
+
 def encrypt_text():
     input_str = input_text.get().upper()
     step = int(step_entry.get())
     new_step = step_conversion(step)
-    encrypted_str = string_conversion(input_str, new_step)
+    encrypted_str = string_conversion(input_str, step_conversion(step))
     encrypted_text.delete(0, tk.END)
     encrypted_text.insert(0, encrypted_str)
 
 
 # Функция создающий новый сдвиг, чтобы он был положительным и находился в пределах длины алфавита
 def step_conversion(step):
-    if step < 0:
-        new_step = abs(len(alfavit) + step)
-    else:
-        new_step = step
-    return new_step
+    return step % len(alfavit)
 
 
 # Функция дешифрования
 def deconv_str(str, step):
     new_str = ''
-    for i in range(len(str)):
-        k = 0
-        while (str[i] != alfavit[k]):
-            k += 1
-        if (k - step < 0):
-            new_str += alfavit[abs(len(alfavit) + k - step) % len(alfavit)]
-        else:
+    for char in str:
+        if char in alfavit:
+            k = alfavit.index(char)
             new_str += alfavit[(k - step) % len(alfavit)]
+        else:
+            new_str += char
     return new_str
 
 
@@ -60,10 +58,7 @@ def frequency_analysis(str):
     char_dict = dict()
     for char in str:
         if char in alfavit:
-            if char in char_dict:
-                char_dict[char] += 1
-            else:
-                char_dict[char] = 1
+            char_dict[char] = char_dict.get(char, 0) + 1
     return char_dict
 
 
@@ -99,6 +94,8 @@ def vslom_cipher():
     cracked_text.delete(0, tk.END)
     cracked_text.insert(0, best_decryption)
     shift_label.config(text=f"Лучший сдвиг: {best_shift}")
+
+
 # Алфавит
 alfavit = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
            "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
@@ -111,7 +108,7 @@ eu_char_dict = {
     'Y': 1.974, 'Z': 0.074
 }
 
-#Интерфейс
+# Интерфейс
 root = tk.Tk()
 root.title("Шифрование и расшифрование")
 # Ввод строки
