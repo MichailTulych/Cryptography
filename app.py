@@ -53,6 +53,7 @@ def home():
     return render_template('home.html', posts=posts)
 
 
+
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -119,7 +120,8 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = generate_password_hash(
-            request.form.get('password'), method='sha256')
+            request.form.get('password'), method='pbkdf2:sha256'
+        )
         email = request.form.get('email')
         new_user = User(username=username, password=password, email=email)
         db.session.add(new_user)
