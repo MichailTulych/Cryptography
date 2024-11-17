@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import User, Post, db
 from encryptor import encrypt, decrypt, key_schedule
@@ -11,7 +12,7 @@ app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
-
+migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -24,9 +25,7 @@ S = key_schedule(key)  # Генерация ключа для шифровани
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Основные маршруты и функции (оставьте все как раньше)
-
-
+# Основные маршруты и функции 
 @app.context_processor
 def utility_processor():
     return dict(decrypt=decrypt)
@@ -45,7 +44,7 @@ def home():
                 post.content = decrypted_content.decode('utf-8')
             except UnicodeDecodeError as e:
                 # Если возникла ошибка, вывести сообщение в лог
-                print(f"Ошибка декодирования для поста {post.id}: {e}")
+                print(f"Ошибка декодирования поста {post.id}: {e}")
                 post.content = "Ошибка: не удалось расшифровать контент."
     else:
         posts = []
@@ -107,10 +106,14 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('home'))
+        users = User.query.all()
+
+        for user in users:
+            decrypted_username = user.get_username(S)
+            if decrypted_username == username and user.check_password(password, S):
+                login_user(user)
+                return redirect(url_for('home'))
+        
         flash('Invalid username or password')
     return render_template('login.html')
 
@@ -119,15 +122,25 @@ def login():
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
-        password = generate_password_hash(
-            request.form.get('password'), method='pbkdf2:sha256'
-        )
+        password = request.form.get('password')
         email = request.form.get('email')
-        new_user = User(username=username, password=password, email=email)
+
+        new_user = User()
+        new_user.set_username(username, S)
+        new_user.set_password(password, S)
+        new_user.set_email(email, S)
+
         db.session.add(new_user)
         db.session.commit()
         return redirect(url_for('login'))
     return render_template('register.html')
+
+@app.route('/profile')
+@login_required
+def profile():
+    username = current_user.get_username(S)
+    email = current_user.get_email(S)
+    return render_template('profile.html', username=username, email=email)
 
 
 @app.route('/logout')

@@ -2,13 +2,13 @@
 {% block content %}
 <h1>Мои Посты</h1>
 {% if posts %}
-<ul>
+<ul style="list-style-type: none; padding: 0;">
     {% for post in posts %}
-    <li>
-        <h2>{{ post.title }}</h2>
-        <p>{{ post.content }}</p> <!-- Выводим расшифрованный текст напрямую -->
-        <a href="{{ url_for('edit_post', post_id=post.id) }}">Редактировать</a>
-        <a href="{{ url_for('delete_post', post_id=post.id) }}">Удалить</a>
+    <li style="background-color: #999999; color: #ffffff; margin-bottom: 15px; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h2 style="margin: 0 0 10px;">{{ post.title }}</h2>
+        <p>{{ post.content }}</p> 
+        <a href="{{ url_for('edit_post', post_id=post.id) }}" style="color: #007bff; text-decoration: none; margin-right: 10px;">Редактировать</a>
+        <a href="{{ url_for('delete_post', post_id=post.id) }}" style="color: #dc3545; text-decoration: none;">Удалить</a>
     </li>
     {% endfor %}
 </ul>
