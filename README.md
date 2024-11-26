@@ -2,9 +2,10 @@
 ## Как пользоваться приложением
 #### Подготовка к запуску
 1) Создать виртуальное окружение: python -m venv venv
-2) Активировать виртуальное окружение: .\venv\Scripts\activate (Windows)
+2) Активировать виртуальное окружение:
+.\venv\Scripts\activate (Windows)
    
-                                       source myenv/bin/activate (macOS и Linux)
+source myenv/bin/activate (macOS и Linux)
 4) Установить необходимые библиотеки: pip install -r requirements.txt
 #### Запуск приложения:
 python .\main.py
