@@ -3,21 +3,22 @@ import struct
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QGridLayout, QMessageBox
 )
-
 # Константы RC5
-WORD_SIZE = 32
 ROUNDS = 12
-KEY_SIZE = 16
 P = 0xB7E15163
 Q = 0x9E3779B9
 
 # Функция для циклического сдвига влево
 def left_rotate(value, shift):
-    return (value << shift) | (value >> (WORD_SIZE - shift))
+    bit_length = value.bit_length()  # Получаю битовую длину числа
+    shift = shift % bit_length
+    return (value << shift) | (value >> (bit_length - shift))
 
 # Функция для циклического сдвига вправо
 def right_rotate(value, shift):
-    return ((value >> shift) | (value << (WORD_SIZE - shift))) 
+    bit_length = value.bit_length()
+    shift = shift % bit_length
+    return ((value >> shift) | (value << (bit_length - shift))) 
 
 # Генерация расширенного ключа
 def key_schedule(key):
@@ -28,7 +29,7 @@ def key_schedule(key):
     i = j = A = B = 0
     for k in range(3 * max(len(L), len(S))):
         A = S[i] = left_rotate(S[i] + A + B, 3)
-        B = L[j] = left_rotate(L[j] + A + B, (A + B) % WORD_SIZE)
+        B = L[j] = left_rotate(L[j] + A + B, (A + B) % 32)
         i = (i + 1) % len(S)
         j = (j + 1) % len(L)
     return S
@@ -36,20 +37,20 @@ def key_schedule(key):
 # Шифрование блока
 def encrypt(plaintext, S):
     A, B = struct.unpack('<2I', plaintext)
-    A = A + S[0]
-    B = B + S[1]
+    A = (A + S[0])& 0xFFFFFFFF
+    B = (B + S[1])& 0xFFFFFFFF
     for i in range(1, ROUNDS + 1):
-        A = left_rotate((A ^ B), B % WORD_SIZE) + S[2 * i]
-        B = left_rotate((B ^ A), A % WORD_SIZE) + S[2 * i + 1]
+        A = (left_rotate(A ^ B, B % 32) + S[2 * i])& 0xFFFFFFFF
+        B = (left_rotate(B ^ A, A % 32) + S[2 * i + 1])& 0xFFFFFFFF
     return struct.pack('<2I', A, B)
 
 def decrypt(ciphertext, S):
     A, B = struct.unpack('<2I', ciphertext)
     for i in range(ROUNDS, 0, -1):
-        B = right_rotate(B - S[2 * i + 1], A % WORD_SIZE) ^ A
-        A = right_rotate(A - S[2 * i], B % WORD_SIZE) ^ B
-    B = B - S[1]
-    A = A - S[0]
+        B = (right_rotate(B - S[2 * i + 1], A % 32) ^ A)& 0xFFFFFFFF
+        A = (right_rotate(A - S[2 * i], B % 32) ^ B)& 0xFFFFFFFF
+    B = (B - S[1])& 0xFFFFFFFF
+    A = (A - S[0])& 0xFFFFFFFF
     return struct.pack('<2I', A, B)
 
 # Генерация ключа равной длины
