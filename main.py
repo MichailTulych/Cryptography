@@ -13,40 +13,54 @@ Q = 0x9E3779B9
 
 # Функция для циклического сдвига влево
 def left_rotate(value, shift):
-    return ((value << shift) & 0xFFFFFFFF) | (value >> (WORD_SIZE - shift))
+    return (value << shift) | (value >> (WORD_SIZE - shift))
 
 # Функция для циклического сдвига вправо
 def right_rotate(value, shift):
-    return ((value >> shift) | (value << (WORD_SIZE - shift))) & 0xFFFFFFFF
+    return ((value >> shift) | (value << (WORD_SIZE - shift))) 
 
 # Генерация расширенного ключа
 def key_schedule(key):
     L = [int.from_bytes(key[i:i+4], 'little') for i in range(0, len(key), 4)]
     S = [P]
     for i in range(1, 2 * ROUNDS + 2):
-        S.append((S[i - 1] + Q) & 0xFFFFFFFF)
+        S.append(S[i - 1] + Q)
     i = j = A = B = 0
     for k in range(3 * max(len(L), len(S))):
-        A = S[i] = left_rotate((S[i] + A + B) & 0xFFFFFFFF, 3)
-        B = L[j] = left_rotate((L[j] + A + B) & 0xFFFFFFFF, (A + B) % WORD_SIZE)
+        A = S[i] = left_rotate(S[i] + A + B, 3)
+        B = L[j] = left_rotate(L[j] + A + B, (A + B) % WORD_SIZE)
         i = (i + 1) % len(S)
         j = (j + 1) % len(L)
     return S
 
 # Шифрование блока
-def encrypt(block, S):
-    A, B = struct.unpack('<2I', block)
-    A = (A + S[0]) & 0xFFFFFFFF
-    B = (B + S[1]) & 0xFFFFFFFF
+def encrypt(plaintext, S):
+    A, B = struct.unpack('<2I', plaintext)
+    A = A + S[0]
+    B = B + S[1]
     for i in range(1, ROUNDS + 1):
-        A = (left_rotate((A ^ B), B % WORD_SIZE) + S[2 * i]) & 0xFFFFFFFF
-        B = (left_rotate((B ^ A), A % WORD_SIZE) + S[2 * i + 1]) & 0xFFFFFFFF
+        A = left_rotate((A ^ B), B % WORD_SIZE) + S[2 * i]
+        B = left_rotate((B ^ A), A % WORD_SIZE) + S[2 * i + 1]
     return struct.pack('<2I', A, B)
 
+def decrypt(ciphertext, S):
+    A, B = struct.unpack('<2I', ciphertext)
+    for i in range(ROUNDS, 0, -1):
+        B = right_rotate(B - S[2 * i + 1], A % WORD_SIZE) ^ A
+        A = right_rotate(A - S[2 * i], B % WORD_SIZE) ^ B
+    B = B - S[1]
+    A = A - S[0]
+    return struct.pack('<2I', A, B)
+
+# Генерация ключа равной длины
+def extend_key(key, length):
+    key = (key * (length // len(key) + 1))[:length]
+    return key
+
 # Генерация потока ключей
-def generate_keystream(S, length, iv):
+def generate_keystream(S, length):
     keystream = b''
-    block = iv
+    block = b'\x00'*8
     while len(keystream) < length:
         block = encrypt(block, S)
         keystream += block
@@ -62,7 +76,7 @@ class RC5StreamApp(QWidget):
         self.label_message = QLabel("Введите сообщение:")
         self.entry_message = QLineEdit()
 
-        self.label_key = QLabel("Введите ключ (16 символов):")
+        self.label_key = QLabel("Введите ключ:")
         self.entry_key = QLineEdit()
 
         self.encrypt_button = QPushButton("Зашифровать")
@@ -94,48 +108,43 @@ class RC5StreamApp(QWidget):
         message = self.entry_message.text().encode()
         key = self.entry_key.text().encode()
 
-        if len(key) != 16:
-            QMessageBox.warning(self, "Ошибка", "Ключ должен быть длиной 16 символов")
+        if not key:
+            QMessageBox.warning(self, "Ошибка", "Ключ  не должен быть пустым")
             return
+
+        #Приведение ключа к длине сообщения 
+        key = extend_key(key, len(message))
 
         # Генерация расширенного ключа
         S = key_schedule(key)
 
-        # Инициализационный вектор
-        iv = b'\x00' * 8
-
         # Генерация псевдослучайного потока
-        keystream = generate_keystream(S, len(message), iv)
+        keystream = generate_keystream(S, len(message))
 
         # Шифрование (XOR с потоком ключей)
         ciphertext = bytes(m ^ k for m, k in zip(message, keystream))
-
-        # Конвертация в hex для удобства отображения
-        encrypted_hex = ciphertext.hex()
-        self.result_label.setText(f"Зашифрованное сообщение: {encrypted_hex}")
+        self.result_label.setText(f"Зашифрованное сообщение: {ciphertext.hex()}")
 
     def decrypt(self):
         ciphertext_hex = self.entry_message.text()
         key = self.entry_key.text().encode()
 
-        if len(key) != 16:
-            QMessageBox.warning(self, "Ошибка", "Ключ должен быть длиной 16 символов")
+        if not key:
+            QMessageBox.warning(self, "Ошибка", "Ключ не должен быть пустым")
             return
+        
+        # Приведение ключа к длине сообщения
+        ciphertext = bytes.fromhex(ciphertext_hex)
+        key = extend_key(key, len(ciphertext))
 
         # Генерация расширенного ключа
         S = key_schedule(key)
 
-        # Конвертация из hex обратно в байты
-        ciphertext = bytes.fromhex(ciphertext_hex)
-
-        # Инициализационный вектор
-        iv = b'\x00' * 8
-
         # Генерация псевдослучайного потока
-        keystream = generate_keystream(S, len(ciphertext), iv)
-
+        keystream = generate_keystream(S, len(ciphertext))
+        
         # Дешифрование (XOR с потоком ключей)
-        decrypted_message = bytes(c ^ k for c, k in zip(ciphertext, keystream))
+        decrypted_message = bytes([c ^ k for c, k in zip(ciphertext, keystream)])
 
         self.result_label.setText(
             f"Расшифрованное сообщение: {decrypted_message.decode(errors='ignore')}"
