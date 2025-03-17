@@ -12,6 +12,5 @@
     git merge --allow-unrelated-histories <name_remote>/<name_branch_remote_repository>
 ## Upload data to a new repository and create a new branch in it
     git push origin <name_new_branch>
-#
- Useful link
+# Useful link
 ## https://github.com/cyberspacedk/Git-commands.git
